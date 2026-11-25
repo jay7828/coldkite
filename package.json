@@ -2,7 +2,7 @@
   "name": "coldkite",
   "version": "0.1.0",
   "private": true,
-  "description": "Open-source job outreach mailer. Paste a job post, get a tailored email, send it from your own inbox. Your keys stay in your browser.",
+  "description": "Open-source job outreach mailer. Paste a job post, get a tailored email from Claude, OpenAI, Gemini or any OpenAI-compatible model, send it from your own inbox. Your keys stay in your browser.",
   "license": "MIT",
   "scripts": {
     "dev": "next dev",

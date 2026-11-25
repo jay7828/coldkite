@@ -2,13 +2,16 @@
 
 import { useRef, useState } from "react";
 import {
-  MODELS,
+  AI_PROVIDERS,
   PROFILE_PLACEHOLDER,
+  aiModel,
+  aiProviderInfo,
+  type AiProvider,
   clearEverything,
   type Resume,
   type Settings,
 } from "@/lib/settings";
-import { buildSystemPrompt } from "@/lib/ai";
+import { buildSystemPrompt, friendlyAiError, listModels } from "@/lib/ai";
 
 const MAX_PDF_BYTES = 2_200_000;
 
@@ -37,9 +40,33 @@ export default function SettingsPanel({
   const [r, setR] = useState<Resume | null>(resume);
   const [err, setErr] = useState("");
   const [showPrompt, setShowPrompt] = useState(false);
+  const [models, setModels] = useState<string[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setS((cur) => ({ ...cur, [k]: v }));
+  const ai = aiProviderInfo(s.aiProvider);
+  const setKey = (v: string) => setS((cur) => ({ ...cur, aiKeys: { ...cur.aiKeys, [cur.aiProvider]: v } }));
+  const setModel = (v: string) => setS((cur) => ({ ...cur, aiModels: { ...cur.aiModels, [cur.aiProvider]: v } }));
+
+  function pickProvider(p: AiProvider) {
+    set("aiProvider", p);
+    setModels([]);
+  }
+
+  async function loadModels() {
+    setLoadingModels(true);
+    setErr("");
+    try {
+      const ids = await listModels(s);
+      setModels(ids);
+      if (!ids.length) setErr("The provider returned no models.");
+    } catch (e) {
+      setErr(`Couldn't list models: ${friendlyAiError(e)}`);
+    } finally {
+      setLoadingModels(false);
+    }
+  }
 
   async function pickPdf(file: File | undefined) {
     if (!file) return;
@@ -61,8 +88,8 @@ export default function SettingsPanel({
   return (
     <div className="settings">
       <div className="notice">
-        Everything you enter here is saved <b>only in this browser</b> (localStorage). Your Anthropic key is
-        sent straight from your browser to Anthropic. Your mail login is passed through the Coldkite server
+        Everything you enter here is saved <b>only in this browser</b> (localStorage). Your AI key is sent
+        straight from your browser to the AI provider you pick (Claude, OpenAI, Gemini and others). Your mail login is passed through the Coldkite server
         for each send and is never stored there. Prefer zero trust? <a href="https://github.com/jay7828/coldkite" target="_blank" rel="noreferrer">Run it yourself</a>.
       </div>
 
@@ -95,13 +122,37 @@ export default function SettingsPanel({
 
       <section className="card card-pad stack">
         <h2>2 · AI drafting</h2>
-        <Field label="Anthropic API key" hint={<>Get one at <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noreferrer">platform.claude.com</a>. You pay Anthropic directly for what you use.</>}>
-          <input type="password" autoComplete="off" value={s.anthropicKey} onChange={(e) => set("anthropicKey", e.target.value)} placeholder="sk-ant-..." />
-        </Field>
-        <Field label="Model">
-          <select value={s.model} onChange={(e) => set("model", e.target.value)}>
-            {MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+        <Field label="AI provider">
+          <select value={s.aiProvider} onChange={(e) => pickProvider(e.target.value as AiProvider)}>
+            {AI_PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
           </select>
+        </Field>
+        {s.aiProvider === "custom" && (
+          <Field label="Base URL" hint="The part before /chat/completions. Groq: https://api.groq.com/openai/v1 · DeepSeek: https://api.deepseek.com/v1 · Mistral: https://api.mistral.ai/v1 · Ollama: http://localhost:11434/v1">
+            <input value={s.customBaseUrl} onChange={(e) => set("customBaseUrl", e.target.value)} placeholder="https://api.groq.com/openai/v1" />
+          </Field>
+        )}
+        <Field
+          label={s.aiProvider === "custom" ? "API key (optional for local models)" : `${ai.label} API key`}
+          hint={ai.keyUrl ? <>Get one at <a href={ai.keyUrl} target="_blank" rel="noreferrer">{ai.keyHint}</a>. You pay the provider directly for what you use.</> : <>From {ai.keyHint}.</>}
+        >
+          <input type="password" autoComplete="off" value={s.aiKeys[s.aiProvider] ?? ""} onChange={(e) => setKey(e.target.value)} placeholder={ai.keyPlaceholder} />
+        </Field>
+        <Field label="Model" hint="Type any model name, or load the list your key can use. Pick one that reads images if you paste screenshots.">
+          <div className="row" style={{ flexWrap: "nowrap" }}>
+            <input
+              list="ck-models"
+              value={s.aiModels[s.aiProvider] ?? ""}
+              onChange={(e) => setModel(e.target.value)}
+              placeholder={aiModel(s) || "model name"}
+            />
+            <datalist id="ck-models">
+              {(models.length ? models : ai.suggestions).map((m) => <option key={m} value={m} />)}
+            </datalist>
+            <button type="button" onClick={loadModels} disabled={loadingModels || (s.aiProvider === "custom" ? !s.customBaseUrl.trim() : !(s.aiKeys[s.aiProvider] ?? "").trim())}>
+              {loadingModels ? <span className="spin" /> : "Load models"}
+            </button>
+          </div>
         </Field>
         <button type="button" className="ghost small" style={{ alignSelf: "flex-start" }} onClick={() => setShowPrompt((v) => !v)}>
           {showPrompt ? "Hide" : "Show"} the prompt the AI gets

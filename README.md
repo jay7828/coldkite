@@ -1,12 +1,12 @@
 # Coldkite
 
-Paste a job post (text or a screenshot), get a short application email written from **your** profile, and send it from **your own** inbox, with your resume attached.
+Paste a job post (text or a screenshot), get a short application email written from **your** profile by the AI of your choice, and send it from **your own** inbox, with your resume attached.
 
 No sign-up, no database. Everything you enter stays in your browser.
 
 ## What it does
 
-- **Job post tab.** Paste a post or drop a screenshot. Claude reads it, pulls out the role, company and the apply address, lists where you match and where you fall short, and drafts a 110–150 word email. You edit it, then send it.
+- **Job post tab.** Paste a post or drop a screenshot. The AI reads it, pulls out the role, company and the apply address, lists where you match and where you fall short, and drafts a 110–150 word email. You edit it, then send it.
 - **Bulk tab.** Paste a list of `email, name, company` rows, write one template with `{{first_name}}` and `{{company}}`, preview each mail, and send them one at a time.
 - Warns you before you email someone you've already emailed from this browser.
 
@@ -17,15 +17,27 @@ The AI only uses facts you put in your profile. It never guesses email addresses
 | Setting | Where to get it |
 |---|---|
 | Your name, profile, signature | You write them in Settings |
-| Anthropic API key | [platform.claude.com](https://platform.claude.com/settings/keys). You pay Anthropic directly for what you use |
+| An API key for **one** AI provider (see below). You pay the provider directly for what you use |  |
 | **Gmail**: address + app password | Turn on 2-step verification, then [create an app password](https://myaccount.google.com/apppasswords). Gmail allows about 500 emails a day |
 | **or Resend**: API key + From address | [resend.com](https://resend.com). Needs a verified domain |
 | Resume PDF (optional) | Up to 2 MB |
 
+## AI providers
+
+| Provider | Key from | Notes |
+|---|---|---|
+| Claude (Anthropic) | [platform.claude.com](https://platform.claude.com/settings/keys) | Default. Strict JSON output |
+| OpenAI | [platform.openai.com](https://platform.openai.com/api-keys) | Strict JSON output |
+| Google Gemini | [aistudio.google.com](https://aistudio.google.com/apikey) | Has a free tier |
+| OpenRouter | [openrouter.ai](https://openrouter.ai/keys) | One key for hundreds of models |
+| Any OpenAI-compatible API | your provider | Groq, DeepSeek, Mistral, Together, a local Ollama, etc. Set the base URL (e.g. `https://api.groq.com/openai/v1`) |
+
+Type any model name, or press **Load models** to pick from the ones your key can use. To paste screenshots, pick a model that reads images.
+
 ## Where your data goes
 
 - **Settings, resume, recipient lists, sent log:** `localStorage` in your browser. *Settings → Clear all data* deletes all of it.
-- **Anthropic key:** sent straight from your browser to `api.anthropic.com`. It never touches the Coldkite server.
+- **AI key:** sent straight from your browser to the provider you picked. It never touches the Coldkite server.
 - **Gmail app password / Resend key:** browsers can't send email directly, so each send goes through a small serverless function (`app/api/send/route.ts`). The browser passes the credentials with that one request; the function sends the email and keeps nothing. It doesn't log or store them. If you'd rather not trust a hosted copy with them, run your own (below). It's one command.
 
 ## Run it yourself
@@ -41,7 +53,7 @@ No environment variables needed. To host your own copy, deploy to Vercel (`npx v
 
 ## Stack
 
-Next.js 16 (App Router), React 19, the Anthropic TypeScript SDK (called from the browser), Nodemailer for Gmail SMTP.
+Next.js 16 (App Router), React 19, the Anthropic TypeScript SDK and plain `fetch` for OpenAI, Gemini and OpenAI-compatible APIs (all called from the browser), Nodemailer for Gmail SMTP.
 
 ## License
 

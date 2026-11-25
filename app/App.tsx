@@ -8,7 +8,6 @@ import {
   EMPTY_SETTINGS,
   loadResume,
   loadSettings,
-  missingForDraft,
   saveResume,
   saveSettings,
   senderOf,
@@ -17,6 +16,8 @@ import {
 } from "@/lib/settings";
 
 type Tab = "post" | "bulk" | "settings";
+
+const isFirstVisit = (s: Settings) => !s.name.trim() && !s.profile.trim() && !Object.values(s.aiKeys).some(Boolean);
 const TAB_KEY = "coldkite:tab";
 
 export default function App() {
@@ -38,7 +39,7 @@ export default function App() {
       /* ignore */
     }
     // First visit: start on Settings so people know what to fill in.
-    setTab(missingForDraft(s).length === 3 ? "settings" : t);
+    setTab(isFirstVisit(s) ? "settings" : t);
     setReady(true);
   }, []);
 
@@ -96,7 +97,7 @@ export default function App() {
           initial={settings}
           resume={resume}
           onSave={save}
-          onClose={missingForDraft(settings).length === 3 ? undefined : () => switchTab("post")}
+          onClose={isFirstVisit(settings) ? undefined : () => switchTab("post")}
         />
       ) : tab === "post" ? (
         <JobDraft settings={settings} resume={resume} notify={notify} openSettings={() => switchTab("settings")} />
