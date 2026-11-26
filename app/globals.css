@@ -195,3 +195,4 @@ button.danger { color: var(--err); }
 .ghost-link { color: var(--muted); text-decoration: none; }
 .ghost-link:hover { color: var(--text); }
 @media (max-width: 480px) { .ghost-link { display: none; } }
+.settings .row > button { white-space: nowrap; flex: none; }
